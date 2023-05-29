@@ -1,3 +1,6 @@
+Project for Networks & Distributed Systems, January 2023
+
+
 To start this project I read the python documentation on how to make a socket
 
 I first made a very simple client and server that could send messages to each other, then connected 
