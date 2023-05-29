@@ -1,4 +1,4 @@
-# Project 1 Networks & Distributed Systems, January 2023
+# Project 1 for CS3700, January 2023
 ## Description
 This assignment was to familiarize us with sockets and network code, mimicking the game Wordle. A server 
 knows the word, and our client has to guess it in as little guesses as possible, getting feedback each time
