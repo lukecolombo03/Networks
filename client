@@ -1,0 +1,109 @@
+#!/usr/bin/env python3
+
+import socket
+import json
+import sys
+import ssl
+
+words = []  # the list of possible words
+with open("WordleWords.txt", "r") as f:
+    for line in f:
+        words.append(line.strip())
+
+answer = [0, 1, 2, 3, 4]  # each int here gets replaced with a letter, whenever we get a green
+to_remove = []          # when next_guess finds a word that couldn't work, it appends it to this
+# list, and then removes all of them after it's done iterating through word list (to avoid
+# concurrent modification exception)
+wrong_letters = []      # letters we got a grey for
+possible_letters = []   # letters that we got a yellow for
+
+
+# Works by updating the above lists, based on new information from our last guess. Then goes through
+# the word list and removes any word that obviously could not work.
+def next_guess5(marks, recent_guess):
+    global possible_letters
+    global answer
+    global wrong_letters
+    global to_remove
+    for i in range(0, 5):
+        if marks[i] == 0 and (recent_guess[i] not in wrong_letters) and \
+                (recent_guess[i] not in possible_letters):  # this accounts for the issue where you
+            # get a 0 even though it should be a 1, bc you got a 2 for this letter elsewhere
+            wrong_letters.append(recent_guess[i])
+        if marks[i] == 1 and (recent_guess[i] not in possible_letters):
+            possible_letters.append(recent_guess[i])
+        if marks[i] == 2 and (recent_guess[i] not in possible_letters):
+            answer[i] = recent_guess[i]
+            possible_letters.append(recent_guess[i])
+
+    for word in words[:]:
+        stop = False
+
+        if not stop:
+            for p_letter in possible_letters:
+                if p_letter not in word:
+                    to_remove.append(word)  # to avoid error
+                    stop = True     # I had break here but changed it bc it was buggy
+        if not stop:
+            for w_letter in word:
+                if w_letter in wrong_letters:
+                    to_remove.append(word)
+                    stop = True
+
+    for to_remove_word in to_remove[:]:
+        if to_remove_word in words:
+            words.remove(to_remove_word)
+            to_remove.remove(to_remove_word)
+
+    return words[0]
+
+
+# HOST = "proj1.3700.network"
+# PORT = 27993
+
+def main(args):
+    port = 27993
+    encrypted = False
+    if '-s' in args:    # if port is encrypted
+        port = 27994
+        encrypted = True
+    if '-p' in args:  # if port is specified
+        args[1] = port
+        print(port)
+    nu_username = args[-1]
+    host = args[-2]
+    my_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    if encrypted:
+        context = ssl.create_default_context()
+        my_socket = context.wrap_socket(my_socket, server_hostname=host)
+        my_socket.connect((host, port))
+    else:
+        my_socket.connect((host, port))
+    initial_message = json.dumps({"type": "hello", "northeastern_username": nu_username}).encode()
+    initial_sent = initial_message + b'\n'
+    my_socket.sendall(initial_sent)
+    received = json.loads(my_socket.recv(1024).decode())  # verify validity of messages here
+    guess = "aster"     # same starting guess every time
+    id = received['id']
+    while received['type'] != "bye":       # runs loop until it guesses the word
+        message_dict = {"type": "guess", "id": id, "word": guess}
+        sent = json.dumps(message_dict).encode() + b'\n'
+        my_socket.sendall(sent)
+        received = json.loads(my_socket.recv(1024).decode())
+        if 'error' in received:
+            print(received['error'])
+            break
+        if 'guesses' in received:
+            last_marks = received['guesses'][-1]['marks']
+            last_guess = received['guesses'][-1]['word']
+            if last_guess in words:
+                words.remove(last_guess)
+            guess = next_guess5(last_marks, last_guess)
+        if 'flag' in received:
+            print(received['flag'])
+            break
+
+    my_socket.close()
+
+
+main(sys.argv)
