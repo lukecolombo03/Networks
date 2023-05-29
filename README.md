@@ -1,6 +1,10 @@
-Project for Networks & Distributed Systems, January 2023
+#Project for Networks & Distributed Systems, January 2023
+##Description
+This assignment was to familiarize us with sockets and network code, mimicking the game Wordle. A server 
+knows the word, and our client has to guess it in as little guesses as possible, getting feedback each time
+on how close the guess was. The client must support both unencrypted and encrypted (TLS) sockets.
 
-
+##Approach
 To start this project I read the python documentation on how to make a socket
 
 I first made a very simple client and server that could send messages to each other, then connected 
